@@ -1,34 +1,42 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  AlertCircle,
   ArrowDown,
   ArrowRight,
-  Download,
-  Github,
-  Linkedin,
-  Mail,
-  Menu,
-  X,
-  Phone,
-  MapPin,
-  ExternalLink,
-  Code2,
   BarChart3,
-  Brain,
-  Sparkles,
-  Eye,
-  LayoutDashboard,
   Bot,
+  Brain,
+  CheckCircle2,
+  Code2,
   Database,
+  Download,
+  Eye,
+  ExternalLink,
+  Github,
   GraduationCap,
+  LayoutDashboard,
+  Linkedin,
+  Loader2,
+  Mail,
+  MapPin,
+  Menu,
+  Phone,
+  Send,
+  Sparkles,
   Users,
-  ChevronDown,
+  X,
 } from "lucide-react";
 import Scene from "./components/Scene";
 import SectionTitle from "./components/SectionTitle";
 import ProjectCard from "./components/ProjectCard";
 import Character from "./components/Character";
-import { portfolio } from "./data/portfolio";
+import ChatAssistant from "./components/ChatAssistant";
+import LearningStudio from "./components/LearningStudio";
+import WorkSimulation from "./components/WorkSimulation";
+import { portfolio as staticPortfolio } from "./data/portfolio";
+import { getPublicStats, loadPortfolio, submitContact, track } from "./lib/api";
+import useHeroPointer from "./lib/useHeroPointer";
 
 const nav = [
   ["home", "Home"],
@@ -37,6 +45,7 @@ const nav = [
   ["projects", "Projects"],
   ["experience", "Experience"],
   ["services", "Services"],
+  ["learn", "Learning Studio"],
   ["contact", "Contact"],
 ];
 
@@ -59,6 +68,8 @@ const serviceIcons = {
   users: Users,
 };
 
+const EMPTY_FORM = { name: "", email: "", subject: "", message: "", company: "" };
+
 function scrollTo(id) {
   const el = document.getElementById(id);
   if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -69,9 +80,8 @@ function useScrollProgress() {
   useEffect(() => {
     const onScroll = () => {
       const h = document.documentElement;
-      const scrolled = h.scrollTop;
       const height = h.scrollHeight - h.clientHeight;
-      setProgress(height > 0 ? (scrolled / height) * 100 : 0);
+      setProgress(height > 0 ? (h.scrollTop / height) * 100 : 0);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -84,7 +94,36 @@ export default function App() {
   const [menu, setMenu] = useState(false);
   const [activeFilter, setActiveFilter] = useState("all");
   const [scrolled, setScrolled] = useState(false);
+  const [content, setContent] = useState(staticPortfolio);
+  const [stats, setStats] = useState(null);
+  const [live, setLive] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [mail, setMail] = useState({ status: "idle", message: "", fields: {} });
+
+  const heroRef = useRef(null);
   const progress = useScrollProgress();
+  const { setPull } = useHeroPointer(heroRef);
+
+  /* ------------------------- live content + analytics ------------------------ */
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = "dark";
+    track("pageview");
+
+    let alive = true;
+    loadPortfolio(staticPortfolio).then(({ data, live: isLive }) => {
+      if (!alive) return;
+      if (data?.projects) setContent(data);
+      setLive(isLive);
+    });
+    getPublicStats()
+      .then((value) => alive && setStats(value))
+      .catch(() => {});
+
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -93,24 +132,66 @@ export default function App() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => {
-    document.documentElement.dataset.theme = "dark";
-  }, []);
+  /* ------------------------------ derived data ------------------------------ */
 
   const filteredProjects = useMemo(() => {
-    const all = portfolio.projects;
+    const all = content.projects || [];
     const filtered =
-      activeFilter === "all"
-        ? all
-        : all.filter((p) => p.category === activeFilter);
+      activeFilter === "all" ? all : all.filter((p) => p.category === activeFilter);
     return [...filtered].sort((a, b) => {
       if (a.featured && !b.featured) return -1;
       if (!a.featured && b.featured) return 1;
       return 0;
     });
-  }, [activeFilter]);
+  }, [activeFilter, content]);
 
-  const featuredProjects = portfolio.projects.filter((p) => p.featured);
+  const statCards = useMemo(
+    () => [
+      { value: `${content.projects.length}`, label: "Projects built" },
+      { value: `${content.marquee.length}+`, label: "Core technologies" },
+      { value: `${content.services.length}`, label: "Services offered" },
+      { value: `${content.certifications.length}`, label: "Certifications" },
+    ],
+    [content]
+  );
+
+  /* -------------------------------- handlers -------------------------------- */
+
+  const onField = (event) => {
+    const { name, value } = event.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    setMail((prev) => (prev.fields[name] ? { ...prev, fields: { ...prev.fields, [name]: undefined } } : prev));
+  };
+
+  async function onMailSubmit(event) {
+    event.preventDefault();
+    if (mail.status === "sending") return;
+
+    setMail({ status: "sending", message: "", fields: {} });
+    try {
+      const result = await submitContact({
+        ...form,
+        subject: form.subject || `Portfolio enquiry from ${form.name}`,
+      });
+      setForm(EMPTY_FORM);
+      setMail({
+        status: "sent",
+        message: `Thank you — your message is in. Reference ${result.ticket}. I'll reply shortly.`,
+        fields: {},
+      });
+      track("contact_submit");
+    } catch (error) {
+      if (error.fields) {
+        setMail({ status: "error", message: "Please check the highlighted fields.", fields: error.fields });
+      } else {
+        setMail({
+          status: "error",
+          message: `Could not reach the contact service. Email ${staticPortfolio.email} directly instead.`,
+          fields: {},
+        });
+      }
+    }
+  }
 
   return (
     <div className="app">
@@ -138,88 +219,82 @@ export default function App() {
         </nav>
 
         <div className="nav-actions">
-          <a
-            href={portfolio.linkedin}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="LinkedIn"
-          >
+          <a href={content.linkedin} target="_blank" rel="noreferrer" aria-label="LinkedIn">
             <Linkedin size={17} />
           </a>
-          <a
-            href={portfolio.github}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="GitHub"
-          >
+          <a href={content.github} target="_blank" rel="noreferrer" aria-label="GitHub">
             <Github size={17} />
           </a>
-          <button
-            className="menu-btn"
-            onClick={() => setMenu(!menu)}
-            aria-label="Toggle menu"
-          >
+          <button className="menu-btn" onClick={() => setMenu(!menu)} aria-label="Toggle menu">
             {menu ? <X /> : <Menu />}
           </button>
         </div>
       </header>
 
       <main>
-        {/* HERO */}
-        <section id="home" className="hero">
+        {/* ============================== HERO ============================== */}
+        <section id="home" className="hero" ref={heroRef}>
           <div className="hero-bg">
             <Scene />
           </div>
+          <div className="hero-aurora" aria-hidden="true">
+            <span />
+            <span />
+          </div>
+
           <div className="hero-grid">
             <motion.div
-              className="hero-copy"
-              initial={{ opacity: 0, y: 30 }}
+              className="hero-copy-wrap"
+              initial={{ opacity: 0, y: 34 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
+              transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
             >
-              <div className="status-pill">
-                <span /> AVAILABLE FOR DATA & AI OPPORTUNITIES
-              </div>
-              <p className="hero-kicker">
-                DATA SCIENCE · ANALYTICS · ARTIFICIAL INTELLIGENCE
-              </p>
-              <h1>
-                Building Intelligent <span>Solutions</span> with Data & AI.
-              </h1>
-              <p className="hero-summary">{portfolio.summary}</p>
+              <div className="hero-copy">
+                <div className="status-pill">
+                  <span /> {content.availability || "AVAILABLE FOR DATA & AI OPPORTUNITIES"}
+                </div>
+                <p className="hero-kicker">
+                  DATA SCIENCE · ANALYTICS · ARTIFICIAL INTELLIGENCE
+                </p>
+                <h1>
+                  Building Intelligent <span>Solutions</span> with Data &amp; AI.
+                </h1>
+                <p className="hero-summary">{content.summary}</p>
 
-              <div className="identity-chips">
-                {portfolio.identity.map((label) => (
-                  <span key={label}>{label}</span>
-                ))}
-              </div>
+                <div className="identity-chips">
+                  {content.identity.map((label) => (
+                    <span key={label}>{label}</span>
+                  ))}
+                </div>
 
-              <div className="hero-actions">
-                <button className="primary-btn" onClick={() => scrollTo("projects")}>
-                  Explore My Projects <ArrowRight size={17} />
-                </button>
-                <button className="secondary-btn" onClick={() => scrollTo("contact")}>
-                  Let's Connect
-                </button>
-                <a
-                  className="ghost-btn"
-                  href={portfolio.resume}
-                  download
-                >
-                  <Download size={16} /> Resume
-                </a>
-              </div>
+                <div className="hero-actions">
+                  <button className="primary-btn" onClick={() => scrollTo("projects")}>
+                    Explore My Projects <ArrowRight size={17} />
+                  </button>
+                  <button className="secondary-btn" onClick={() => scrollTo("contact")}>
+                    Let's Connect
+                  </button>
+                  <a
+                    className="ghost-btn"
+                    href={content.resume}
+                    download
+                    onClick={() => track("resume_download")}
+                  >
+                    <Download size={16} /> Resume
+                  </a>
+                </div>
 
-              <div className="social-row">
-                <a href={portfolio.linkedin} target="_blank" rel="noreferrer" aria-label="LinkedIn">
-                  <Linkedin size={18} />
-                </a>
-                <a href={portfolio.github} target="_blank" rel="noreferrer" aria-label="GitHub">
-                  <Github size={18} />
-                </a>
-                <a href={`mailto:${portfolio.email}`} aria-label="Email">
-                  <Mail size={18} />
-                </a>
+                <div className="social-row">
+                  <a href={content.linkedin} target="_blank" rel="noreferrer" aria-label="LinkedIn">
+                    <Linkedin size={18} />
+                  </a>
+                  <a href={content.github} target="_blank" rel="noreferrer" aria-label="GitHub">
+                    <Github size={18} />
+                  </a>
+                  <a href={`mailto:${content.email}`} aria-label="Email">
+                    <Mail size={18} />
+                  </a>
+                </div>
               </div>
             </motion.div>
 
@@ -229,7 +304,10 @@ export default function App() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1, delay: 0.15 }}
             >
-              <Character />
+              <Character
+                onFocusCharacter={() => setPull(1)}
+                onBlurCharacter={() => setPull(0)}
+              />
               <div className="scroll-hint">
                 <ArrowDown size={15} /> Scroll to explore
               </div>
@@ -237,7 +315,36 @@ export default function App() {
           </div>
         </section>
 
-        {/* ABOUT */}
+        {/* =========================== TECH MARQUEE ========================== */}
+        <div className="marquee" aria-hidden="true">
+          <div className="marquee-track">
+            {[...content.marquee, ...content.marquee].map((item, index) => (
+              <span key={`${item}-${index}`}>
+                {item}
+                <i>◆</i>
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* ============================ STATS BAND =========================== */}
+        <section className="stats-band" aria-label="Portfolio statistics">
+          {statCards.map((card) => (
+            <div className="stat-card" key={card.label}>
+              <strong>{card.value}</strong>
+              <span>{card.label}</span>
+            </div>
+          ))}
+          <div className="stat-card api-card">
+            <span className={`api-dot ${live ? "on" : ""}`} aria-hidden="true" />
+            <span className="api-label">
+              {live ? "Live portfolio API" : "Static content"}
+              {stats?.pageviews ? ` · ${stats.pageviews} views` : ""}
+            </span>
+          </div>
+        </section>
+
+        {/* ============================= ABOUT ============================= */}
         <section id="about" className="section about-section">
           <SectionTitle
             number="01"
@@ -245,7 +352,13 @@ export default function App() {
             title="Working at the intersection of Data Science, Analytics & AI"
           />
           <div className="about-layout">
-            <div className="about-text">
+            <motion.div
+              className="about-text"
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.55 }}
+            >
               <p className="large-copy">
                 I'm Mohammed Nasim P — a Data Science and Data Analytics Trainer
                 and AI Developer focused on transforming data into actionable
@@ -266,33 +379,36 @@ export default function App() {
               <button className="primary-btn small" onClick={() => scrollTo("experience")}>
                 View My Experience <ArrowRight size={16} />
               </button>
-            </div>
+            </motion.div>
             <div className="about-cards">
               {[
                 ["01", "Data Science", "Analysis & modeling"],
                 ["02", "Artificial Intelligence", "Intelligent systems"],
                 ["03", "Generative AI", "LLMs & Agentic AI"],
                 ["04", "Technical Training", "Mentoring & guidance"],
-              ].map(([n, t, d]) => (
-                <div className="mini-card" key={n}>
+              ].map(([n, t, d], index) => (
+                <motion.div
+                  className="mini-card"
+                  key={n}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-60px" }}
+                  transition={{ duration: 0.45, delay: index * 0.07 }}
+                >
                   <span>{n}</span>
                   <strong>{t}</strong>
                   <small>{d}</small>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* SKILLS */}
+        {/* ============================= SKILLS ============================ */}
         <section id="skills" className="section">
-          <SectionTitle
-            number="02"
-            eyebrow="SKILLS"
-            title="Technologies I work with"
-          />
+          <SectionTitle number="02" eyebrow="SKILLS" title="Technologies I work with" />
           <div className="skills-grid">
-            {portfolio.skills.map((s, i) => {
+            {content.skills.map((s, i) => {
               const Icon = skillIcons[s.icon] || Code2;
               return (
                 <motion.div
@@ -319,7 +435,7 @@ export default function App() {
           </div>
         </section>
 
-        {/* PROJECTS */}
+        {/* ============================ PROJECTS =========================== */}
         <section id="projects" className="section projects-section">
           <SectionTitle
             number="03"
@@ -328,15 +444,22 @@ export default function App() {
           />
 
           <div className="project-filters">
-            {portfolio.projectCategories.map((cat) => (
-              <button
-                key={cat.id}
-                className={`filter-btn ${activeFilter === cat.id ? "active" : ""}`}
-                onClick={() => setActiveFilter(cat.id)}
-              >
-                {cat.label}
-              </button>
-            ))}
+            {content.projectCategories.map((cat) => {
+              const count =
+                cat.id === "all"
+                  ? content.projects.length
+                  : content.projects.filter((p) => p.category === cat.id).length;
+              return (
+                <button
+                  key={cat.id}
+                  className={`filter-btn ${activeFilter === cat.id ? "active" : ""}`}
+                  onClick={() => setActiveFilter(cat.id)}
+                >
+                  {cat.label}
+                  <b>{count}</b>
+                </button>
+              );
+            })}
           </div>
 
           <AnimatePresence mode="popLayout">
@@ -345,20 +468,15 @@ export default function App() {
               key={activeFilter}
               initial="hidden"
               animate="show"
-              variants={{
-                hidden: {},
-                show: { transition: { staggerChildren: 0.06 } },
-              }}
+              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.06 } } }}
             >
               {filteredProjects.map((p) => (
                 <motion.div
                   key={p.id}
                   layout
-                  variants={{
-                    hidden: { opacity: 0, y: 20 },
-                    show: { opacity: 1, y: 0 },
-                  }}
+                  variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}
                   transition={{ duration: 0.4 }}
+                  onClick={() => track("project_view", { project: p.id })}
                 >
                   <ProjectCard project={p} featured={p.featured} />
                 </motion.div>
@@ -367,16 +485,12 @@ export default function App() {
           </AnimatePresence>
         </section>
 
-        {/* EXPERIENCE */}
+        {/* =========================== EXPERIENCE ========================== */}
         <section id="experience" className="section">
-          <SectionTitle
-            number="04"
-            eyebrow="EXPERIENCE"
-            title="My professional journey"
-          />
+          <SectionTitle number="04" eyebrow="EXPERIENCE" title="My professional journey" />
           <div className="experience-layout">
             <div className="timeline">
-              {portfolio.experience.map((e, i) => (
+              {content.experience.map((e, i) => (
                 <motion.article
                   className={`experience-card ${e.current ? "current" : ""}`}
                   key={e.title}
@@ -406,11 +520,11 @@ export default function App() {
                   <GraduationCap size={24} />
                 </div>
                 <div>
-                  <span className="muted">{portfolio.education.period}</span>
-                  <h3>{portfolio.education.degree}</h3>
-                  <p>{portfolio.education.institution}</p>
+                  <span className="muted">{content.education.period}</span>
+                  <h3>{content.education.degree}</h3>
+                  <p>{content.education.institution}</p>
                   <div className="gpa">
-                    GPA <strong>{portfolio.education.gpa}</strong>
+                    GPA <strong>{content.education.gpa}</strong>
                   </div>
                 </div>
               </div>
@@ -429,15 +543,11 @@ export default function App() {
           </div>
         </section>
 
-        {/* SERVICES */}
+        {/* ============================ SERVICES =========================== */}
         <section id="services" className="section">
-          <SectionTitle
-            number="05"
-            eyebrow="SERVICES"
-            title="What I can help you with"
-          />
+          <SectionTitle number="05" eyebrow="SERVICES" title="What I can help you with" />
           <div className="services-grid">
-            {portfolio.services.map((s, i) => {
+            {content.services.map((s, i) => {
               const Icon = serviceIcons[s.icon] || Code2;
               return (
                 <motion.div
@@ -453,10 +563,7 @@ export default function App() {
                   </div>
                   <h3>{s.title}</h3>
                   <p>{s.description}</p>
-                  <button
-                    className="service-cta"
-                    onClick={() => scrollTo("contact")}
-                  >
+                  <button className="service-cta" onClick={() => scrollTo("contact")}>
                     Get in touch <ArrowRight size={14} />
                   </button>
                 </motion.div>
@@ -465,15 +572,11 @@ export default function App() {
           </div>
         </section>
 
-        {/* CERTIFICATIONS */}
+        {/* ========================= CERTIFICATIONS ======================== */}
         <section id="certifications" className="section">
-          <SectionTitle
-            number="06"
-            eyebrow="CERTIFICATIONS"
-            title="My credentials"
-          />
+          <SectionTitle number="06" eyebrow="CERTIFICATIONS" title="My credentials" />
           <div className="cert-grid">
-            {portfolio.certifications.map(([name, org, year]) => (
+            {content.certifications.map(([name, org, year]) => (
               <div className="cert-card" key={name}>
                 <div className="cert-icon">◇</div>
                 <div>
@@ -487,15 +590,11 @@ export default function App() {
           </div>
         </section>
 
-        {/* ACHIEVEMENTS */}
+        {/* ========================== ACHIEVEMENTS ========================= */}
         <section id="achievements" className="section">
-          <SectionTitle
-            number="07"
-            eyebrow="ACHIEVEMENTS"
-            title="Highlights & recognition"
-          />
+          <SectionTitle number="07" eyebrow="ACHIEVEMENTS" title="Highlights & recognition" />
           <div className="achievement-grid">
-            {portfolio.achievements.map(([icon, title, desc]) => (
+            {content.achievements.map(([icon, title, desc]) => (
               <div className="achievement-card" key={title}>
                 <div>{icon}</div>
                 <strong>{title}</strong>
@@ -505,13 +604,19 @@ export default function App() {
           </div>
         </section>
 
-        {/* CONTACT */}
-        <section id="contact" className="section contact-section">
+        {/* ===================== AI LEARNING STUDIO ===================== */}
+        <section id="learn" className="section learn-section">
           <SectionTitle
             number="08"
-            eyebrow="CONTACT"
-            title="Let's work together"
+            eyebrow="AI TRAINER &amp; LEARNING STUDIO"
+            title="Interactive Data Science &amp; AI Classroom"
           />
+          <LearningStudio />
+        </section>
+
+        {/* ============================ CONTACT ============================ */}
+        <section id="contact" className="section contact-section">
+          <SectionTitle number="09" eyebrow="CONTACT" title="Let's work together" />
           <div className="contact-grid">
             <div className="contact-copy">
               <p>
@@ -521,69 +626,152 @@ export default function App() {
                 networking.
               </p>
               <div className="contact-lines">
-                <a href={`mailto:${portfolio.email}`}>
-                  <Mail size={17} /> <span>{portfolio.email}</span>
+                <a href={`mailto:${content.email}`}>
+                  <Mail size={17} /> <span>{content.email}</span>
                 </a>
-                <a href={`tel:${portfolio.phone}`}>
-                  <Phone size={17} /> <span>{portfolio.phone}</span>
+                <a href={`tel:${content.phone}`}>
+                  <Phone size={17} /> <span>{content.phone}</span>
                 </a>
                 <div>
-                  <MapPin size={17} /> <span>{portfolio.location}</span>
+                  <MapPin size={17} /> <span>{content.location}</span>
                 </div>
               </div>
               <div className="social-large">
-                <a href={portfolio.linkedin} target="_blank" rel="noreferrer">
+                <a href={content.linkedin} target="_blank" rel="noreferrer">
                   <Linkedin size={16} /> LinkedIn
                 </a>
-                <a href={portfolio.github} target="_blank" rel="noreferrer">
+                <a href={content.github} target="_blank" rel="noreferrer">
                   <Github size={16} /> GitHub
                 </a>
               </div>
             </div>
-            <form
-              className="contact-form"
-              action={`mailto:${portfolio.email}`}
-              method="post"
-              encType="text/plain"
-            >
+
+            <form className="contact-form" onSubmit={onMailSubmit} noValidate>
               <div className="form-row">
-                <input name="name" placeholder="Your name" required />
+                <label className={`field ${mail.fields.name ? "invalid" : ""}`}>
+                  <input
+                    name="name"
+                    placeholder="Your name"
+                    value={form.name}
+                    onChange={onField}
+                    required
+                  />
+                  {mail.fields.name && <small>{mail.fields.name}</small>}
+                </label>
+                <label className={`field ${mail.fields.email ? "invalid" : ""}`}>
+                  <input
+                    name="email"
+                    type="email"
+                    placeholder="Your email"
+                    value={form.email}
+                    onChange={onField}
+                    required
+                  />
+                  {mail.fields.email && <small>{mail.fields.email}</small>}
+                </label>
+              </div>
+
+              <label className={`field ${mail.fields.subject ? "invalid" : ""}`}>
                 <input
-                  name="email"
-                  type="email"
-                  placeholder="Your email"
+                  name="subject"
+                  placeholder="Subject (optional)"
+                  value={form.subject}
+                  onChange={onField}
+                />
+                {mail.fields.subject && <small>{mail.fields.subject}</small>}
+              </label>
+
+              <label className={`field ${mail.fields.message ? "invalid" : ""}`}>
+                <textarea
+                  name="message"
+                  rows="6"
+                  placeholder="Tell me about your project or requirement..."
+                  value={form.message}
+                  onChange={onField}
                   required
                 />
-              </div>
-              <input name="subject" placeholder="Subject" />
-              <textarea
-                name="message"
-                rows="6"
-                placeholder="Your message..."
-                required
+                {mail.fields.message && <small>{mail.fields.message}</small>}
+              </label>
+
+              {/* honeypot — hidden from humans, bots fill it in */}
+              <input
+                className="honeypot"
+                name="company"
+                tabIndex={-1}
+                autoComplete="off"
+                value={form.company}
+                onChange={onField}
+                aria-hidden="true"
               />
-              <button className="primary-btn" type="submit">
-                Send Message <ArrowRight size={17} />
+
+              <button className="primary-btn" type="submit" disabled={mail.status === "sending"}>
+                {mail.status === "sending" ? (
+                  <>
+                    <Loader2 className="spin" size={17} /> Sending…
+                  </>
+                ) : (
+                  <>
+                    Send Message <Send size={17} />
+                  </>
+                )}
               </button>
+
+              {mail.status !== "idle" && mail.status !== "sending" && (
+                <p className={`form-status ${mail.status}`}>
+                  {mail.status === "sent" ? (
+                    <CheckCircle2 size={15} />
+                  ) : (
+                    <AlertCircle size={15} />
+                  )}
+                  {mail.message}
+                </p>
+              )}
+
               <p className="form-note">
-                This opens your email client. For a direct backend form, a
-                service like Formspree can be connected.
+                Messages are stored securely with a reference ticket and can be
+                emailed to me automatically.
               </p>
             </form>
           </div>
         </section>
-      </main>
+      {/* ========================== FREELANCE & HIRE ME ========================== */}
+<section id="freelance" className="section freelance-section">
+  <SectionTitle number="10" eyebrow="FREELANCE COLLABORATION" title="Available for Freelance Projects" />
+  
+  {/* What If Nasim Worked for You? Interactive Simulation */}
+  <WorkSimulation />
+
+  <div className="freelance-copy">
+    <p>
+      Whether you need an end-to-end Power BI report, a customized machine learning pipeline, an enterprise RAG agent,
+      or hands-on data science corporate workshops, I'm ready to collaborate.
+    </p>
+    <div className="hire-buttons">
+      <button className="primary-btn" onClick={() => scrollTo('contact')}>
+        Interested to Hire <ArrowRight size={14} />
+      </button>
+      <motion.button
+        className="secondary-btn"
+        whileHover={{ x: 150, transition: { type: 'spring', stiffness: 300 } }}
+        onClick={() => {}}
+      >
+        Not Interested
+      </motion.button>
+    </div>
+  </div>
+</section>
+</main>
 
       <footer>
         <div className="brand">
           <span className="brand-mark">N</span>
           <span>NASIM</span>
         </div>
-        <span>
-          © {new Date().getFullYear()} Mohammed Nasim P. All rights reserved.
-        </span>
+        <span>© {new Date().getFullYear()} Mohammed Nasim P. All rights reserved.</span>
         <button onClick={() => scrollTo("home")}>Back to top ↑</button>
       </footer>
+
+      <ChatAssistant />
     </div>
   );
 }

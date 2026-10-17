@@ -1,3 +1,10 @@
+// Single source of truth for the portfolio content.
+// Imported by the React front-end AND by the Express API server (server/),
+// so the site and the API can never drift apart.
+
+const cover = (prompt, size = "landscape_16_9") =>
+  `https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=${prompt}&image_size=${size}&cb=${Date.now()}`;
+
 export const portfolio = {
   name: "Mohammed Nasim P",
   role: "Data Science & AI Trainer | Data Analyst | Generative AI Developer",
@@ -7,6 +14,8 @@ export const portfolio = {
   linkedin: "https://www.linkedin.com/in/mohammednasimpdatascientist/",
   github: "https://github.com/mohammednasim",
   resume: "/assets/Mohammed-Nasim-Resume.pdf",
+  avatar: "/assets/nasim-character-2d.png",
+  availability: "Open to Data Science, Analytics & AI roles",
   summary:
     "I am a Data Science and Data Analytics Trainer and AI Developer focused on transforming data into actionable insights and building practical AI-powered applications. I work at the intersection of Data Science, Analytics, and Artificial Intelligence — training learners in practical data and AI technologies while building applications and analytical solutions that turn technical concepts into useful outcomes.",
   identity: [
@@ -16,6 +25,26 @@ export const portfolio = {
     "Machine Learning & AI Practitioner",
     "Generative AI & Agentic AI Developer",
     "Freelance Data & AI Solutions Developer",
+  ],
+  marquee: [
+    "Python",
+    "SQL",
+    "Pandas",
+    "NumPy",
+    "Scikit-learn",
+    "TensorFlow",
+    "Keras",
+    "PyTorch",
+    "Power BI",
+    "Tableau",
+    "LangChain",
+    "LangGraph",
+    "RAG",
+    "Google Gemini",
+    "OpenAI API",
+    "Streamlit",
+    "OpenCV",
+    "Git",
   ],
   experience: [
     {
@@ -180,7 +209,7 @@ export const portfolio = {
       github: "https://github.com/mohammednasim/SmartOfficeAI",
       demo: null,
       color: "cyan",
-      image: null,
+      image: "/assets/projects/smartofficeai.jpg",
     },
     {
       id: "ai-code-reviewer",
@@ -201,7 +230,7 @@ export const portfolio = {
       github: "https://github.com/mohammednasim/AI-Code-Reviewer",
       demo: null,
       color: "violet",
-      image: null,
+      image: "/assets/projects/ai-code-reviewer.jpg",
     },
     {
       id: "image-processing",
@@ -223,7 +252,7 @@ export const portfolio = {
         "https://github.com/mohammednasim/AI-Powered-Image-Processing-App",
       demo: null,
       color: "blue",
-      image: null,
+      image: "/assets/projects/image-processing.jpg",
     },
     {
       id: "chicken-disease",
@@ -245,7 +274,9 @@ export const portfolio = {
         "https://github.com/mohammednasim/Chicken-Disease-Classification-Projects-main",
       demo: null,
       color: "violet",
-      image: null,
+      image: cover(
+        "Website%20project%20cover:%20Professional%203D%20isometric%20view%20of%20a%20poultry%20health%20monitoring%20AI%20dashboard,%20showing%20CNN%20image%20classification%20of%20chickens%20with%20glowing%20health%20status%20indicators,%20neural%20network%20architecture%20visualization,%20dark%20agritech%20theme,%20violet%20and%20cyan%20neon%20accents,%208k%20resolution,%20no%20text."
+      ),
     },
     {
       id: "insurance-fraud",
@@ -263,10 +294,12 @@ export const portfolio = {
         "Designed to support claim verification and reduce false positives.",
       ],
       stack: ["Python", "Scikit-learn", "Random Forest", "XGBoost"],
-      github: null,
+      github: "https://github.com/mohammednasim/-Insurance-Fraud-Claim-Detection-System",
       demo: null,
       color: "blue",
-      image: null,
+      image: cover(
+        "Website%20project%20cover:%20Professional%203D%20isometric%20view%20of%20a%20fraud%20detection%20analytics%20dashboard,%20glowing%20red%20anomaly%20detection%20flags%20on%20insurance%20claim%20data%20visualizations,%20Random%20Forest%20and%20XGBoost%20model%20metrics,%20dark%20financial%20security%20theme,%20blue%20and%20cyan%20accents,%208k%20resolution,%20no%20text."
+      ),
     },
     {
       id: "ipl-analysis",
@@ -287,11 +320,61 @@ export const portfolio = {
       github: "https://github.com/mohammednasim/IPL-Analysis-with-PowerBI",
       demo: null,
       color: "cyan",
-      image: null,
+      image: cover(
+        "Website%20project%20cover:%20Professional%20IPL%20cricket%20analytics%20dashboard,%20featuring%20a%203D%20cricket%20stadium%20silhouette%20with%20glowing%20neon%20data%20visualizations,%20player%20stat%20panels,%20and%20statistical%20charts,%20dark%20navy%20theme%20with%20cyan%20and%20violet%20accents,%20cinematic%20lighting,%20no%20text."
+      ),
+    },
+    {
+      id: "ai-exam-analysis",
+      number: "07",
+      title: "AI Exam Analysis",
+      category: "ai",
+      categoryLabel: "AI / Educational Data Analytics",
+      featured: true,
+      description:
+        "An AI-assisted exam analytics system that processes examination and result data to surface performance patterns across students, subjects, and individual questions. Raw answer and score data is turned into clear, actionable insight that supports data-driven academic decisions and targeted improvement.",
+      details: [
+        "Processes exam and result datasets into structured analytical views.",
+        "Student-level, subject-level, and question-level performance breakdowns.",
+        "Statistical analysis and visualization of score distributions and trends.",
+        "Highlights weak areas to support targeted academic intervention.",
+        "Built as a reusable Python analysis pipeline.",
+      ],
+      stack: ["Python", "Pandas", "NumPy", "Scikit-learn", "Data Visualization"],
+      github: "https://github.com/mohammednasim/AI_EXAM_ANALYSIS",
+      demo: null,
+      color: "cyan",
+      image: cover(
+        "Website%20project%20cover:%20Intelligent%20educational%20analytics%20dashboard,%20holographic%20answer%20sheets%20with%20glowing%20exam%20score%20distributions,%20student%20progress%20charts%20and%20performance%20heatmaps,%20dark%20futuristic%20classroom%20aesthetic,%20cyan%20and%20violet%20neon%20accents,%20high%20quality,%20no%20text."
+      ),
+    },
+    {
+      id: "stock-market-analysis",
+      number: "08",
+      title: "Stock Market Analysis & Prediction",
+      category: "ml",
+      categoryLabel: "Machine Learning / Financial Analytics",
+      featured: false,
+      description:
+        "A stock market analytics and price-prediction project built on historical market data. It explores price movement, volatility, and trend behaviour, then applies machine learning and time-series techniques to forecast future prices, with visual reporting of model behaviour.",
+      details: [
+        "Historical stock price ingestion, cleaning, and feature engineering.",
+        "Exploratory analysis of trends, moving averages, and volatility.",
+        "Machine learning / time-series modelling for price prediction.",
+        "Model evaluation and visualization against actual market movement.",
+        "Reusable notebook-driven workflow for any listed ticker.",
+      ],
+      stack: ["Python", "Pandas", "NumPy", "Scikit-learn", "Matplotlib", "Time Series"],
+      github: "https://github.com/mohammednasim/StockMarket_Analyse",
+      demo: null,
+      color: "blue",
+      image: cover(
+        "Website%20project%20cover:%20Professional%203D%20isometric%20view%20of%20a%20stock%20market%20prediction%20dashboard,%20glowing%20candlestick%20charts,%20predictive%20trend%20lines%20and%20volatility%20heatmaps,%20time-series%20analysis%20visualizations,%20dark%20fintech%20theme,%20blue%20and%20cyan%20accents,%208k%20resolution,%20no%20text."
+      ),
     },
     {
       id: "car-sales",
-      number: "07",
+      number: "09",
       title: "Car Sales Power BI Dashboard",
       category: "bi",
       categoryLabel: "Business Intelligence",
@@ -308,12 +391,13 @@ export const portfolio = {
       github: "https://github.com/mohammednasim/-Car-Sales-PowerBI-Dashboard",
       demo: null,
       color: "blue",
-      image:
-        "https://raw.githubusercontent.com/mohammednasim/-Car-Sales-PowerBI-Dashboard/main/Car%20Sales%20Background%201.jpg",
+      image: cover(
+        "Website%20project%20cover:%20Professional%203D%20isometric%20view%20of%20a%20modern%20Car%20Sales%20Power%20BI%20dashboard%20on%20a%20sleek%20tablet,%20featuring%20dark%20mode%20UI,%20glowing%20cyan%20and%20violet%20line%20charts,%20bar%20graphs,%20and%20KPI%20cards,%20high-end%20luxury%20car%20silhouettes%20in%20the%20background,%20ultra-realistic,%208k%20resolution,%20cinematic%20lighting,%20no%20text."
+      ),
     },
     {
       id: "sales-report",
-      number: "08",
+      number: "10",
       title: "Sales Report Dashboard — Power BI",
       category: "bi",
       categoryLabel: "Data Analytics / Business Intelligence",
@@ -331,11 +415,13 @@ export const portfolio = {
         "https://github.com/mohammednasim/Sales-Report-Dashboard---Power-BI",
       demo: null,
       color: "violet",
-      image: null,
+      image: cover(
+        "Website%20project%20cover:%20Professional%203D%20isometric%20view%20of%20a%20retail%20sales%20report%20dashboard,%20glowing%20KPI%20cards,%20revenue%20trends%20and%20product%20performance%20charts%20floating%20above%20a%20dark%20minimalist%20desk,%20navy%20background%20with%20violet%20and%20cyan%20neon%20accents,%208k%20resolution,%20no%20text."
+      ),
     },
     {
       id: "spotify",
-      number: "09",
+      number: "11",
       title: "Spotify Project on Power BI",
       category: "bi",
       categoryLabel: "Data Analytics / Media Analytics",
@@ -352,30 +438,64 @@ export const portfolio = {
       github: "https://github.com/mohammednasim/Spotify-Project-on-Power-BI",
       demo: null,
       color: "cyan",
-      image:
-        "https://raw.githubusercontent.com/mohammednasim/Spotify-Project-on-Power-BI/main/Slide1.jpg",
+      image: cover(
+        "Website%20project%20cover:%20Professional%203D%20isometric%20view%20of%20a%20Spotify%20media%20analytics%20dashboard%20on%20a%20sleek%20laptop%20screen,%20featuring%20dark%20mode%20glassmorphism%20UI,%20glowing%20green%20and%20cyan%20sound%20wave%20visualizations,%20artist%20popularity%20charts,%20and%20track%20streaming%20data,%20music-themed%20background%20with%20abstract%20vinyl%20records,%20ultra-realistic,%208k%20resolution,%20cinematic%20lighting,%20no%20text."
+      ),
+    },
+    {
+      id: "legal-document-ai",
+      number: "12",
+      title: "Legal Document AI",
+      category: "ai",
+      categoryLabel: "Generative AI / Legal Tech (RAG)",
+      featured: false,
+      description:
+        "A Retrieval-Augmented Generation assistant for legal documents. It indexes contracts, agreements, and legal text so users can ask everyday-language questions and receive grounded answers with the supporting source passages — turning long, dense documents into a searchable knowledge base. (Private repository — source code is not publicly accessible.)",
+      details: [
+        "Document ingestion and chunking pipeline for contracts and legal text.",
+        "Vector embeddings with semantic search over the indexed documents.",
+        "RAG-based question answering grounded in retrieved source passages.",
+        "Conversational interface for exploring long documents quickly.",
+        "Private project — repository is not publicly accessible.",
+      ],
+      stack: ["Python", "LangChain", "RAG", "Vector Search", "LLM", "Streamlit"],
+      github: null,
+      demo: null,
+      color: "violet",
+      image: cover(
+        "Website%20project%20cover:%20Professional%203D%20isometric%20view%20of%20a%20Legal%20AI%20assistant%20interface,%20glowing%20holographic%20contract%20documents%20with%20semantic%20search%20highlights,%20RAG-based%20source%20passage%20linking,%20dark%20navy%20legal%20tech%20theme,%20violet%20and%20cyan%20accents,%208k%20resolution,%20no%20text."
+      ),
     },
     {
       id: "eventvisualshub",
-      number: "10",
+      number: "13",
       title: "EventVisualsHub",
       category: "ml",
       categoryLabel: "Computer Vision / AI Applications",
       featured: false,
       private: true,
       description:
-        "A computer vision application to organize event images and videos into customizable albums, with facial recognition and emotion-analysis capabilities. (Private repository — source code is not publicly accessible.)",
+        "The Event Visual Gallery captures and organizes event images and videos, leveraging AI for facial recognition and emotion analysis. Users can create customizable albums with unique backgrounds and models, and uploaded event videos are analyzed to generate concise summaries and transcriptions. (Private repository — source code is not publicly accessible.)",
       details: [
         "Organize event images and videos into customizable albums.",
         "Facial recognition for automatic person grouping.",
-        "Emotion analysis on event media.",
+        "Emotion analysis across event media.",
+        "Video summarization and transcription for uploaded event footage.",
         "Private project — repository is not publicly accessible.",
       ],
-      stack: ["Python", "OpenCV", "Face Recognition", "Computer Vision"],
+      stack: [
+        "Python",
+        "OpenCV",
+        "Face Recognition",
+        "Emotion Analysis",
+        "Computer Vision",
+      ],
       github: null,
       demo: null,
       color: "violet",
-      image: null,
+      image: cover(
+        "Website%20project%20cover:%20Professional%203D%20isometric%20view%20of%20an%20AI-powered%20event%20media%20gallery,%20glowing%20facial%20recognition%20frames%20and%20emotion%20analysis%20tags%20on%20event%20photos,%20video%20summarization%20timeline,%20dark%20tech%20theme,%20violet%20and%20cyan%20neon%20accents,%208k%20resolution,%20no%20text."
+      ),
     },
   ],
   projectCategories: [
@@ -399,3 +519,5 @@ export const portfolio = {
     ["⚡", "Simulations", "Forage — GenAI, Data Analytics, Power BI"],
   ],
 };
+
+export default portfolio;

@@ -69,7 +69,7 @@ module.exports = (env = {}, argv = {}) => {
       }),
     ],
     devServer: {
-      port: 5173,
+      port: 5174,
       hot: true,
       open: false,
       historyApiFallback: true,
@@ -79,6 +79,13 @@ module.exports = (env = {}, argv = {}) => {
         publicPath: "/",
         watch: true,
       },
+      proxy: [
+        {
+          context: ["/api"],
+          target: "http://localhost:8787",
+          changeOrigin: true,
+        },
+      ],
       client: { overlay: { errors: true, warnings: false } },
     },
     performance: { hints: false },

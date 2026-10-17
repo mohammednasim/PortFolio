@@ -44,14 +44,50 @@ npm run preview      # vite preview (static server for dist/)
 ```
 
 
+## Backend API
+
+An Express 5 service in `server/` provides the portfolio content and the
+interactive features. It stores enquiries, analytics and assistant messages in
+SQLite via Node's built-in `node:sqlite` (no native dependency).
+
+```bash
+cp .env.example .env     # then fill in what you need (all optional)
+npm run server           # API on http://localhost:8787
+npm run server:dev       # same, with --watch
+npm run start            # API serving the built dist/ on one origin
+npm run dev:full         # frontend dev server + API together
+```
+
+Everything degrades gracefully: with no `.env` the API still serves content,
+stores enquiries in `data/portfolio.db`, and answers the assistant from its
+local knowledge engine.
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /api/portfolio`, `/projects`, `/skills`, `/services`, `/experience`, `/education`, `/certifications`, `/achievements` | Portfolio content (shared with the frontend through `src/data/portfolio.js`) |
+| `GET /api/stats/public` | Public counters used by the hero stats strip |
+| `POST /api/contact` | Validated + rate-limited enquiry form, returns a reference ticket |
+| `POST /api/chat` | Portfolio assistant — Gemini when `GEMINI_API_KEY` is set, local knowledge engine otherwise |
+| `POST /api/analytics/events` | Page views, project views, resume downloads, outbound clicks |
+| `GET /api/health` | Service status and enabled features |
+
+Set `SMTP_*` + `CONTACT_TO` to email enquiries, `GEMINI_API_KEY` for AI answers,
+and `ADMIN_TOKEN` to unlock `GET /api/admin/messages`.
+
+When the API is unreachable the frontend silently falls back to the bundled
+static content, so the site never renders empty.
+
 ## Replace the avatar
-The current interactive 3D hero uses the uploaded portrait as a textured 3D card inside a Three.js scene. Replace:
+The hero character is a transparent PNG so it composites over the animated
+background — no frame, no border:
 
-`public/assets/nasim.jpg`
+`public/assets/nasim-character.png`
 
-with another portrait if needed.
-
-For a true rigged 3D human, export a `.glb`/`.gltf` character from Blender or another 3D workflow and replace `PortraitCard` in `src/components/Scene.jsx` with a Drei `useGLTF` model.
+Replace it with any cut-out character image (identical name, transparent
+background) and the glow, rings and cursor interaction keep working. The
+character follows the cursor and, while the pointer is over it, the hero copy
+slides to the opposite side — driven by the `--px` / `--py` / `--pull` custom
+properties written in `src/lib/useHeroPointer.js`.
 
 ## Resume
 The uploaded resume is copied to:
@@ -59,4 +95,6 @@ The uploaded resume is copied to:
 `public/assets/Mohammed-Nasim-Resume.pdf`
 
 ## Contact form
-The contact form uses a `mailto:` action so it works without a backend. For production, connect it to Formspree, Resend, EmailJS, a serverless function, or your own API.
+The form posts to `POST /api/contact`. The API validates the payload with Zod,
+stores the enquiry with a reference ticket, and emails it when SMTP is
+configured. Field-level validation errors are surfaced inline in the form.
