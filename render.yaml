@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: nasim-portfolio
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: node server/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0
+      - key: GEMINI_MODEL
+        value: gemini-3.8-flash
+      - key: GEMINI_TIMEOUT_MS
+        value: 25000
