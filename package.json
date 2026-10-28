@@ -11,7 +11,7 @@
     "build:vite": "vite build",
     "preview:vite": "vite preview",
     "server": "node server/index.js",
-    "server:dev": "node --watch server/index.js",
+    "server:dev": "node --watch-path=server server/index.js",
     "start": "node server/index.js",
     "dev:full": "concurrently -n WEB,API -c cyan,magenta \"npm:dev\" \"npm:server:dev\""
   },
